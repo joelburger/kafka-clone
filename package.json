@@ -3,9 +3,11 @@
   "description": "Build your own Kafka challenge, from CodeCrafters",
   "type": "module",
   "scripts": {
-    "dev": "bun run app/main.ts"
+    "dev": "ts-node  app/main.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/node": "latest",
+    "prettier": "^3.5.3",
+    "ts-node": "^10.9.2"
   }
 }
