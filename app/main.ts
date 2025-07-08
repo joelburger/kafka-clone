@@ -5,8 +5,8 @@ const PORT: number = parseInt(process.env.PORT || '9092', 10);
 
 interface RequestHeader {
   messageSize: number;
-  requestApiKey: number;
-  requestApiVersion: number;
+  apiKey: number;
+  apiVersion: number;
   correlationId: number;
 }
 
@@ -27,10 +27,7 @@ function parseInputBuffer(input: Buffer): RequestHeader {
 }
 
 function validateApiVersion(apiKey: number, apiVersion: number): boolean {
-  if (apiKey === 18 && apiVersion >= 0 && apiVersion <= 4) {
-    return true;
-  }
-  return false;
+  return apiKey === 18 && apiVersion >= 0 && apiVersion <= 4;
 }
 
 const server: net.Server = net.createServer((connection: net.Socket) => {
@@ -39,12 +36,10 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
 
     const { correlationId, apiKey, apiVersion } = parseInputBuffer(input);
 
-    const isValidApiVersion = validateApiVersion(apiKey, apiVersion);
-
-    const errorCode = isValidApiVersion ? 0 : 35;
+    const errorCode = validateApiVersion(apiKey, apiVersion) ? 0 : 35;
 
     // Construct output buffer
-    const output: Buffer = Buffer.alloc(8);
+    const output: Buffer = Buffer.alloc(10);
 
     // Write message size
     output.writeUint32BE(0);
