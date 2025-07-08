@@ -1,27 +1,27 @@
 {
   "compilerOptions": {
-    // Enable latest features
+    // Modern features
     "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "ESNext",
-    "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "allowJs": true,
 
-    // Bundler mode
-    "moduleResolution": "bundler",
+    // Enable ESM-friendly resolution
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
+
+    // Project settings
+    "allowJs": false,
     "noEmit": true,
 
-    // Best practices
+    // Type safety
     "strict": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
-
-    // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["app/**/*"]
 }
