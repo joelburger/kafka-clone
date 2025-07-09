@@ -1,27 +1,28 @@
 {
   "compilerOptions": {
     // Modern features
-    "lib": ["ESNext", "DOM"],
-    "target": "ESNext",
-    "module": "ESNext",
+    "lib": ["ESNext", "DOM"], // Includes latest JS features and browser APIs in type checking.
+    "target": "ESNext", // Output JS uses the latest syntax (e.g., class fields, top-level await).
 
-    // Enable ESM-friendly resolution
-    "moduleResolution": "NodeNext",
-    "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    "module": "NodeNext", // Emits Node.js-compatible ESM (import/export) code.
+    "moduleResolution": "NodeNext", // Resolves modules like Node.js ESM (supports .js/.ts/.mjs/.cjs).
+
+    "resolveJsonModule": true, // Allows importing .json files as modules.
+    "allowImportingTsExtensions": true, // Lets you import files with .ts/.mts/.cts extensions.
+
+    "verbatimModuleSyntax": true, // Keeps import/export statements as written (does not rewrite them).
 
     // Project settings
-    "allowJs": false,
-    "noEmit": true,
+    "allowJs": false, // Disallows compiling .js files (only .ts/.tsx).
+    "noEmit": false, // Does not output any .js files (type-check only).
 
     // Type safety
-    "strict": true,
-    "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "strict": true, // Enables all strict type-checking options for maximum safety.
+    "skipLibCheck": true, // Skips type checking of declaration files (.d.ts) for faster builds.
+    "noFallthroughCasesInSwitch": true, // Error if a switch case falls through without a break.
+    "noUnusedLocals": false, // Allows unused local variables (set to true to error on them).
+    "noUnusedParameters": false, // Allows unused function parameters (set to true to error on them).
+    "noPropertyAccessFromIndexSignature": false // Allows property access via index signature (set to true for stricter checks).
   },
-  "include": ["app/**/*"]
+  "include": ["app/**/*"] // Only files in the app directory are included for compilation.
 }

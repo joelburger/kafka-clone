@@ -1,33 +1,28 @@
 import * as net from 'net';
+import { ApiKeys, type RequestHeader, type SupportedVersion } from './types.js';
+import {
+  calculateResponseBufferSize,
+  parseInputBuffer,
+  writeSupportedApiVersions,
+} from './bufferUtils.js';
 
 const HOST: string = '127.0.0.1';
 const PORT: number = parseInt(process.env.PORT || '9092', 10);
 
-interface RequestHeader {
-  messageSize: number;
-  apiKey: number;
-  apiVersion: number;
-  correlationId: number;
-}
-
-function parseInputBuffer(input: Buffer): RequestHeader {
-  //  Read message size
-  const messageSize = input.readUint32BE(0);
-
-  // Read request API key
-  const apiKey: number = input.readUint16BE(4);
-
-  // Read request API version
-  const apiVersion: number = input.readUint16BE(6);
-
-  // Read correlation ID
-  const correlationId: number = input.readUInt32BE(8);
-
-  return { messageSize, apiKey, apiVersion, correlationId };
-}
+const supportedApiKeys = new Map<ApiKeys, SupportedVersion>([
+  [ApiKeys.DESCRIBE_TOPIC_PARTITIONS, { minVersion: 0, maxVersion: 0 }],
+  [ApiKeys.API_VERSIONS, { minVersion: 0, maxVersion: 4 }],
+]);
 
 function validateApiVersion(apiKey: number, apiVersion: number): boolean {
-  return apiKey === 18 && apiVersion >= 0 && apiVersion <= 4;
+  if (!supportedApiKeys.has(apiKey)) {
+    return false;
+  }
+
+  const supportedApiKey = supportedApiKeys.get(apiKey)!;
+  const { minVersion, maxVersion } = supportedApiKey;
+
+  return apiVersion >= minVersion && apiVersion <= maxVersion;
 }
 
 const server: net.Server = net.createServer((connection: net.Socket) => {
@@ -39,12 +34,19 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
     const errorCode = validateApiVersion(apiKey, apiVersion) ? 0 : 35;
 
     // Construct output buffer
-    const output: Buffer = Buffer.alloc(23);
+
+    const totalBufferSize = calculateResponseBufferSize(supportedApiKeys);
+
+    console.log('Buffer size', totalBufferSize);
+
+    const output: Buffer = Buffer.alloc(totalBufferSize);
 
     let offset = 0;
 
-    // Write message size (4 bytes)
-    output.writeUint32BE(19);
+    // Write message size (4 bytes). This is the total buffer size minus the 4 bytes allocated for the message size.
+    const messageSize = totalBufferSize - 4;
+
+    output.writeUint32BE(messageSize);
     offset += 4;
 
     // Write correlation ID (4 bytes)
@@ -55,25 +57,8 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
     output.writeUInt16BE(errorCode, offset);
     offset += 2;
 
-    // Write array length (1 byte)
-    output.writeUInt8(2, offset);
-    offset += 1;
-
-    // Write api key (2 bytes)
-    output.writeUInt16BE(18, offset);
-    offset += 2;
-
-    // Write minimum version (2 bytes)
-    output.writeUInt16BE(0, offset);
-    offset += 2;
-
-    // Write maximum version (2 bytes)
-    output.writeUInt16BE(4, offset);
-    offset += 2;
-
-    // Write tag buffer (1 byte)
-    output.writeUInt8(0, offset);
-    offset += 1;
+    // Write API versions
+    offset = writeSupportedApiVersions(supportedApiKeys, output, offset);
 
     // Write throttle time (4 bytes)
     output.writeUint32BE(0, offset);
