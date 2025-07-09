@@ -39,16 +39,48 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
     const errorCode = validateApiVersion(apiKey, apiVersion) ? 0 : 35;
 
     // Construct output buffer
-    const output: Buffer = Buffer.alloc(10);
+    const output: Buffer = Buffer.alloc(23);
 
-    // Write message size
-    output.writeUint32BE(0);
+    let offset = 0;
 
-    // Write correlation ID
-    output.writeUint32BE(correlationId, 4);
+    // Write message size (4 bytes)
+    output.writeUint32BE(19);
+    offset += 4;
 
-    // Write error code
-    output.writeUint16BE(errorCode, 8);
+    // Write correlation ID (4 bytes)
+    output.writeUint32BE(correlationId, offset);
+    offset += 4;
+
+    // Write error code (2 bytes)
+    output.writeUInt16BE(errorCode, offset);
+    offset += 2;
+
+    // Write array length (1 byte)
+    output.writeUInt8(2, offset);
+    offset += 1;
+
+    // Write api key (2 bytes)
+    output.writeUInt16BE(18, offset);
+    offset += 2;
+
+    // Write minimum version (2 bytes)
+    output.writeUInt16BE(0, offset);
+    offset += 2;
+
+    // Write maximum version (2 bytes)
+    output.writeUInt16BE(4, offset);
+    offset += 2;
+
+    // Write tag buffer (1 byte)
+    output.writeUInt8(0, offset);
+    offset += 1;
+
+    // Write throttle time (4 bytes)
+    output.writeUint32BE(0, offset);
+    offset += 4;
+
+    // Write tag buffer (1 byte)
+    output.writeUInt8(0, offset);
 
     console.log('Output buffer', output);
 
