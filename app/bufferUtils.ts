@@ -1,19 +1,41 @@
-import { ApiKeys, type RequestHeader, type SupportedVersion } from './types.js';
+import { ApiKeys, type Request, type SupportedVersion } from './types.js';
 
-export function parseInputBuffer(input: Buffer): RequestHeader {
+export function parseRequest(input: Buffer): Request {
+  let offset = 0;
+
   //  Read message size
-  const messageSize = input.readUint32BE(0);
+  const messageSize = input.readUint32BE(offset);
+  offset += 4;
 
   // Read request API key
-  const apiKey: number = input.readUint16BE(4);
+  const apiKey: number = input.readUint16BE(offset);
+  offset += 2;
 
   // Read request API version
-  const apiVersion: number = input.readUint16BE(6);
+  const apiVersion: number = input.readUint16BE(offset);
+  offset += 2;
 
   // Read correlation ID
-  const correlationId: number = input.readUInt32BE(8);
+  const correlationId: number = input.readUInt32BE(offset);
+  offset += 4;
 
-  return { messageSize, apiKey, apiVersion, correlationId };
+  // Read client ID length
+  const clientIdLength: number = input.readUint16BE(offset);
+  offset += 2;
+
+  // Read client ID
+  const clientId: string = input
+    .subarray(offset, offset + clientIdLength)
+    .toString();
+  offset += clientIdLength;
+
+  // Skip tag buffer
+  offset += 1;
+
+  // Read body
+  const body: Buffer = input.subarray(offset);
+
+  return { messageSize, apiKey, apiVersion, correlationId, clientId, body };
 }
 
 export function writeSupportedApiVersions(
@@ -49,17 +71,4 @@ export function writeSupportedApiVersions(
   });
 
   return newOffset;
-}
-
-export function calculateResponseBufferSize(
-  supportedApiKeys: Map<ApiKeys, SupportedVersion>
-): number {
-  // 4 bytes: message size
-  // 4 bytes: correlation ID
-  // 2 bytes: error code
-  // 1 byte: array length
-  // For each API key: 2 (key) + 2 (min) + 2 (max) + 1 (tag) = 7 bytes
-  // 4 bytes: throttle time
-  // 1 byte: tag buffer
-  return 4 + 4 + 2 + 1 + supportedApiKeys.size * 7 + 4 + 1;
 }
