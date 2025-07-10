@@ -12,7 +12,7 @@ export interface Request {
 export interface SupportedVersion {
   minVersion: number;
   maxVersion: number;
-  handler: (connection: Socket, correlationId: number, body?: Buffer) => void;
+  handler: (connection: Socket, correlationId: number, body: Buffer) => void;
 }
 
 export enum ApiKeys {

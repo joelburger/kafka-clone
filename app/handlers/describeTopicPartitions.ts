@@ -3,13 +3,16 @@ import { ErrorCodes } from '../types.js';
 
 function readTopics(body: Buffer) {
   let offset = 0;
-  const topicsLength = body.readUint8(offset);
+  // The length of the topics array + 1, encoded as a varint. Subtracting 1 when deserialising.
+  const topicsLength = body.readUInt8(offset) - 1;
   offset += 1;
 
   const topics: string[] = [];
 
-  for (let i = 0; i < topicsLength - 1; i++) {
-    const topicNameLength: number = body.readUint8(offset);
+  for (let i = 0; i < topicsLength; i++) {
+    // The topic name encoded as a COMPACT_STRING, which starts with a varint corresponding to the length of the string + 1,
+    // followed by the string itself encoded in UTF-8.
+    const topicNameLength: number = body.readUInt8(offset) - 1;
     offset += 1;
 
     const topicName: string = body
@@ -30,9 +33,9 @@ function calculateBufferSize(topics: string[]): number {
   // Fixed header: 4 (message size) + 4 (correlationId) + 1 (tag) + 4 (throttle time) + 1 (topic array length)
   let size = 4 + 4 + 1 + 4 + 1;
 
-  // Per-topic: 2 (error code) + 1 (topic name length) + topicName.length + 16 (UUID) + 1 (is internal) + 1 (partitions array) + 4 (operations) + 1 (tag)
+  // Per-topic: 2 (error code) + 1 (topic name length) + topicNamByteLength + 16 (UUID) + 1 (is internal) + 1 (partitions array) + 4 (operations) + 1 (tag)
   for (const topicName of topics) {
-    size += 2 + 1 + topicName.length + 16 + 1 + 1 + 4 + 1;
+    size += 2 + 1 + Buffer.byteLength(topicName) + 16 + 1 + 1 + 4 + 1;
   }
 
   // Next cursor (1) + tag buffer (1)
@@ -53,11 +56,11 @@ export function handleDescribeTopicPartitions(
   let offset = 0;
 
   /// Write message size (4 bytes). This is the total buffer size minus the first 4 bytes allocated for the message size.
-  output.writeUint32BE(totalBufferSize - 4, offset);
+  output.writeUInt32BE(totalBufferSize - 4, offset);
   offset += 4;
 
   // Write correlation ID (4 bytes)
-  output.writeUint32BE(correlationId, offset);
+  output.writeUInt32BE(correlationId, offset);
   offset += 4;
 
   // Write tag buffer
@@ -65,10 +68,10 @@ export function handleDescribeTopicPartitions(
   offset += 1;
 
   // Write throttle time
-  output.writeUint32BE(0, offset);
+  output.writeUInt32BE(0, offset);
   offset += 4;
 
-  // Write topic array length. The length of the topics array + 1, encoded as a varint..
+  // Write topic array length. The length of the topics array + 1, encoded as a varint. Adding 1 when serialising.
   output.writeUInt8(topics.length + 1, offset);
   offset += 1;
 
@@ -78,16 +81,18 @@ export function handleDescribeTopicPartitions(
     offset += 2;
 
     // Write topic name length
-    output.writeUInt8(topicName.length, offset);
+    // The topic name encoded as a COMPACT_STRING, which starts with a varint corresponding to the length of the string + 1,
+    // followed by the string itself encoded in UTF-8. Adding 1 when serialising.
+    const nameLength = Buffer.byteLength(topicName);
+    output.writeUInt8(nameLength + 1, offset);
     offset += 1;
 
     // Write topic name
-    output.write(topicName.trimEnd(), offset);
-    offset += topicName.length - 1;
+    output.write(topicName, offset, nameLength, 'utf8');
+    offset += nameLength;
 
-    // Write topic ID
-    const uuidBuffer = Buffer.alloc(16, 0);
-    uuidBuffer.copy(output, offset);
+    // Write topic ID (UUID, 16 bytes)
+    Buffer.alloc(16, 0).copy(output, offset);
     offset += 16;
 
     // Write is internal flag
